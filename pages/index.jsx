@@ -8,6 +8,7 @@ const Home = () => {
   const [collection, setCollectionAddress] = useState("");
   const [nfts, setNfts] = useState([]);
   const [cnt, setCnt] = useState(0);
+  const [key, setKey] = useState(0);
   const [fetchByCollection, setFetchByCollection] = useState(false);
 
   const fetchNftsForCollection = async (start) => {
@@ -29,7 +30,7 @@ const Home = () => {
     }
   };
 
-  const fetchNfts = async () => {
+  const fetchNfts = async (key) => {
     //Get NFTS using alchemy api
     let nfts;
     console.log("fetching nfts");
@@ -38,19 +39,23 @@ const Home = () => {
     var requestOptions = {
       method: "GET",
     };
+    console.log(key);
     if (!collection.length) {
       //show all nfts
-      const fetchURL = `${baseURL}?owner=${wallet}`;
+      const fetchURL = `${baseURL}?owner=${wallet}&pageKey=${key}`;
+
       nfts = await fetch(fetchURL, requestOptions).then((data) => data.json());
     } else {
       //filter by collection
       console.log("fetching nfts for collection owned by address");
-      const fetchURL = `${baseURL}?owner=${wallet}&contractAddresses%5B%5D=${collection}`;
+      const fetchURL = `${baseURL}?owner=${wallet}&contractAddresses%5B%5D=${collection}&pageKey=${key}`;
       nfts = await fetch(fetchURL, requestOptions).then((data) => data.json());
     }
 
     if (nfts) {
       console.log(nfts);
+
+      setKey(nfts.pageKey);
       setNfts(nfts.ownedNfts);
     }
   };
@@ -92,7 +97,7 @@ const Home = () => {
           </label>
           <button
             onClick={() => {
-              fetchByCollection ? fetchNftsForCollection(cnt) : fetchNfts();
+              fetchByCollection ? fetchNftsForCollection(cnt) : fetchNfts(key);
             }}
             className={
               "disabled:bg-slate-500 text-white bg-blue-400 px-4 py-2 mt-3 rounded-sm w-1/5"
@@ -107,7 +112,7 @@ const Home = () => {
             <NftCard nft={nft} />
           ))}
         </div>
-        {fetchByCollection && nfts.length > 0 && (
+        {nfts.length > 0 && (
           <div className="mx-auto w-full flex gap-3 items-center justify-center p-2">
             {cnt >= 100 && (
               <button
@@ -124,9 +129,12 @@ const Home = () => {
             {nfts.length >= 100 && (
               <button
                 onClick={() => {
-                  setCnt(cnt + 100);
-
-                  fetchNftsForCollection(cnt + 100);
+                  if (fetchByCollection) {
+                    fetchNftsForCollection(cnt + 100);
+                    setCnt(cnt + 100);
+                  } else {
+                    fetchNfts(key);
+                  }
                 }}
                 className="text-white bg-blue-400 py-2 mt-3 rounded-lg w-1/12"
               >
